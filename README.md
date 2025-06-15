@@ -5,7 +5,7 @@
 This is an official repository for our **TNNLS 2025** paper:
 > **Diversify and Conquer: Open-set Disagreement for Robust Semi-supervised Learning with Outliers**</br>
 > Heejo Kong, Sung-Jin Kim, Gunho Jung, Seong-Whan Lee*</br>
-[[`Paper (IEEE)`](https://doi.org/10.1109/TNNLS.2025.3547801)] [[`Paper (arXiv)`](https://arxiv.org/abs/2505.24443)] [[`BibTeX`](#citations)]
+[[`Paper (IEEE)`](https://doi.org/10.1109/TNNLS.2025.3547801)] [[`Paper (arXiv)`](https://arxiv.org/abs/2505.24443)] [[`Models and Logs`](https://huggingface.co/heejokong/open-set_SSL_divcon/tree/main)] [[`BibTeX`](#citations)]
 
 ![](./assets/framework_1.png)
 
@@ -107,12 +107,50 @@ CUDA_VISIBLE_DEVICES=0 python train.py --c config/openset_cv/dac/dac_in30_p5_1.y
 After training, the best checkpoints will be saved in ``./saved_models``. The closed-set performance has been reported in the training logs. For the open-set evaluation, please see [``eval.py``](./eval.py).
 
 
+
 ## Experimental Results
 
-### Close-Set Classification Accuracy
+Through hyper-parameter tuning, we achieved slight improvements over the results reported in the TNNLS paper.
+For CIFAR-10 and ImageNet-30, experiments were rerun with $\lambda_{mi}$ set to 0.05; for CIFAR-100, with $\lambda_{mi}$ set to 0.10.
+The trained models and training logs are available at [this page](https://huggingface.co/heejokong/open-set_SSL_divcon/tree/main).
+
+
+### Closed-Set Classification Accuracy
+|               | CIFAR-6-30 | CIFAR-6-60 | CIFAR-6-150 | ImageNet-20-P1 | ImageNet-20-P5 |
+|:-------------:|:----------:|:----------:|:-----------:|:--------------:|:--------------:|
+|**Seed=1**     | 87.13      | 93.90      | 92.12       | 86.10          | 93.35          |
+|**Seed=2**     | 86.95      | 93.55      | 93.83       | 88.15          | 93.25          |
+|**Seed=3**     | 91.38      | 93.70      | 94.05       | 86.40          | 93.50          |
+| **Average**   | 88.49      | 93.72      | 93.33       | 86.88          | 93.37          |
+
+|               | CIFAR-20-100 | CIFAR-20-200 | CIFAR-20-500 | CIFAR-50-250 | CIFAR-50-500 | CIFAR-50-1250 |
+|:-------------:|:------------:|:------------:|:------------:|:------------:|:------------:|:-------------:|
+|**Seed=1**     | 51.45        | 60.30        | 66.95        | 56.56        | 65.40        | 71.26         |
+|**Seed=2**     | 59.55        | 62.60        | 68.75        | 56.58        | 64.62        | 70.58         |
+|**Seed=3**     | 54.40        | 57.30        | 65.75        | 60.80        | 64.98        | 71.28         |
+| **Average**   | 55.13        | 60.07        | 67.15        | 57.98        | 65.00        | 71.04         |
+
+### Open-Set Classification Accuracy
+|               | CIFAR-6-30 | CIFAR-6-60 | CIFAR-6-150 | ImageNet-20-P1 | ImageNet-20-P5 |
+|:-------------:|:----------:|:----------:|:-----------:|:--------------:|:--------------:|
+|**Seed=1**     | 72.18      | 78.07      | 77.35       | 82.09          | 88.69          |
+|**Seed=2**     | 72.19      | 77.99      | 78.10       | 77.69          | 89.11          |
+|**Seed=3**     | 77.00      | 78.11      | 81.31       | 77.64          | 85.50          |
+| **Average**   | 73.79      | 78.06      | 78.92       | 79.14          | 87.77          |
+
+|               | CIFAR-20-100 | CIFAR-20-200 | CIFAR-20-500 | CIFAR-50-250 | CIFAR-50-500 | CIFAR-50-1250 |
+|:-------------:|:------------:|:------------:|:------------:|:------------:|:------------:|:-------------:|
+|**Seed=1**     | 48.64        | 56.82        | 64.00        | 53.68        | 62.77        | 65.99         |
+|**Seed=2**     | 54.03        | 58.57        | 64.74        | 54.59        | 63.08        | 69.03         |
+|**Seed=3**     | 51.79        | 54.36        | 62.38        | 58.14        | 62.01        | 67.24         |
+| **Average**   | 51.49        | 56.58        | 63.71        | 55.47        | 62.62        | 67.42         |
+
+
+## Comparisons with Other Baselines
+
+### Closed-Set Classification Accuracy
 
 ![](./assets/result_closed_set.png)
-
 
 
 ### Open-Set Classification Accuracy

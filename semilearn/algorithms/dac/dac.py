@@ -65,15 +65,12 @@ class OSCDataset(BasicDataset):
 
 
 class OSCNet(nn.Module):
-    def __init__(self, base, num_classes, num_heads, proj_dim=128, use_rot=False):
+    def __init__(self, base, num_classes, num_heads, proj_dim, use_rot=False):
         super(OSCNet, self).__init__()
         self.backbone = base
         self.feat_planes = base.num_features
         # 
-        if self.feat_planes == 128:
-            self.proj_dim = 128
-        else:
-            self.proj_dim = 256
+        self.proj_dim = proj_dim
         self.proj = nn.Sequential(
             nn.Linear(self.feat_planes, self.feat_planes),
             nn.ReLU(inplace=True),
@@ -100,8 +97,8 @@ class OSCNet(nn.Module):
         emb = self.norm(emb)
         logits = self.backbone(emb, only_fc=True)
         logits_comm = self.fc_comm(self.proj(emb.detach()))
-        emb_proj = self.l2norm(self.proj(emb))
-        return_dict = {'logits': logits, 'logits_comm': logits_comm, 'feat': emb, 'feat_proj': emb_proj}
+        emb_proj = self.proj(emb)
+        return_dict = {'logits': logits, 'logits_comm': logits_comm, 'feat': self.l2norm(emb), 'feat_proj': self.l2norm(emb_proj)}
         # 
         if self.use_rot:
             logits_rot = self.rot_classifier(emb)
@@ -126,7 +123,6 @@ class DAC(AlgorithmBase):
         return dataset_dict
 
     def set_hooks(self):
-        self.args.proj_dim = 256 if "resnet" in self.args.net else 128
         self.register_hook(DistAlignQueueHook(num_classes=self.num_classes, queue_length=self.args.da_len, p_target_type='uniform'), "DistAlignHook")
         self.register_hook(PseudoLabelingHook(), "PseudoLabelingHook")
         self.register_hook(FixedThresholdingHook(), "MaskingHook")
@@ -142,13 +138,11 @@ class DAC(AlgorithmBase):
         super().set_hooks()
 
     def set_model(self):
-        self.args.proj_dim = 256 if "resnet" in self.args.net else 128
         model = super().set_model()
         model = OSCNet(model, num_classes=self.num_classes, num_heads=self.args.num_heads, proj_dim=self.args.proj_dim, use_rot=self.args.use_rot,)
         return model
 
     def set_ema_model(self):
-        self.args.proj_dim = 256 if "resnet" in self.args.net else 128
         ema_model = self.net_builder(num_classes=self.num_classes)
         ema_model = OSCNet(ema_model, num_classes=self.num_classes, num_heads=self.args.num_heads, proj_dim=self.args.proj_dim, use_rot=self.args.use_rot,)
         ema_model.load_state_dict(self.model.state_dict())

@@ -56,7 +56,7 @@ ema_alpha: 0.9
 K: 256
 lambda_u: 1.0
 lambda_reg: 1.0
-lambda_mi: 0.5
+lambda_mi: 0.1
 lambda_kd: 1.5
 mask_type: soft
 temp_w: 1.5

@@ -56,8 +56,7 @@ def load_model_at(step='best', use_ema=True):
     if args.algorithm == 'openmatch':
         net = OpenMatchNet(net, args.num_classes)
     elif args.algorithm == 'dac':
-        # net = OSCNet(net, args.num_classes, num_heads=args.num_heads, proj_dim=args.proj_dim)
-        net = OSCNet(net, args.num_classes, num_heads=args.num_heads)
+        net = OSCNet(net, args.num_classes, num_heads=args.num_heads, proj_dim=args.proj_dim)
     keys = net.load_state_dict(load_state_dict, strict=False)
     print(f'Model at step {args.step} loaded!')
     if torch.cuda.is_available():
@@ -183,9 +182,6 @@ def evaluate_recall(args, net, dataset_dict, extended_test=False, testset="test"
                 scores = c_scores
             otsu_th = threshold_otsu(scores.cpu().numpy())
             print(f"OTSU_THRESHOLD_VALUE: {otsu_th}")
-            # otsu_th = 0.2
-            # otsu_th = 0.1
-            # otsu_th = 0.0
             hard_pos_mask = scores.ge(otsu_th)
             hard_neg_mask = scores.lt(otsu_th)
             soft_mask = scores / (otsu_th + 1e-8)
@@ -199,25 +195,12 @@ def evaluate_recall(args, net, dataset_dict, extended_test=False, testset="test"
             pred_neg_mask = scores.lt(0.95)
             preds_open = preds.clone()
             preds_open[pred_neg_mask] = args.num_classes
-
-        Y_test = np.zeros(scores.shape[0])
-        Y_test[:id_mask.sum()] = 1
-        scores_id =  scores[id_mask]
-        scores_ood = scores[ood_mask]
-        scores = torch.cat((scores_id, scores_ood))
-        auroc = roc_auc_score(Y_test, scores.cpu().numpy())
-        # print(auroc)
-
         # 
         np.set_printoptions(precision=3, suppress=True)
         close_acc = accuracy_score(labels[id_mask].cpu().numpy(), preds[id_mask].cpu().numpy())
         open_acc = balanced_accuracy_score(labels.cpu().numpy(), preds_open.cpu().numpy())
         # 
         if args.algorithm == 'dac':
-            recall_hard = (true_mask_close * hard_pos_mask).sum() / id_mask.sum()
-            precision_hard = (true_mask_close * hard_pos_mask).sum() / hard_pos_mask.sum()
-            recall_soft = (true_mask_close * soft_pos_mask).sum() / id_mask.sum()
-            precision_soft = (true_mask_close * soft_pos_mask).sum() / soft_pos_mask.sum()
             print(f"#############################################################\n"
                 f" Method:               {args.algorithm}\n"
                 f" Dataset:              {args.dataset}\n"
@@ -225,16 +208,9 @@ def evaluate_recall(args, net, dataset_dict, extended_test=False, testset="test"
                 f" Num_labels:           {args.num_labels}\n"
                 f" Closed-set Accuracy:  {close_acc * 100:.2f}\n"
                 f" Open-set Accuracy:    {open_acc * 100:.2f}\n"
-                f" AUROC:                {auroc * 100:.2f}\n"
-                f" Recall [HARD]:        {recall_hard * 100:.2f}\n"
-                f" Recall [SOFT]:        {recall_soft * 100:.2f}\n"
-                f" Precision [HARD]:     {precision_hard * 100:.2f}\n"
-                f" Precision [SOFT]:     {precision_soft * 100:.2f}\n"
                 f"#############################################################\n"
                 )
         else:
-            recall = (true_mask_close * pred_pos_mask).sum() / id_mask.sum()
-            precision = (true_mask_close * pred_pos_mask).sum() / pred_pos_mask.sum()
             print(f"#############################################################\n"
               f" Method:               {args.algorithm}\n"
               f" Dataset:              {args.dataset}\n"
@@ -242,56 +218,56 @@ def evaluate_recall(args, net, dataset_dict, extended_test=False, testset="test"
               f" Num_labels:           {args.num_labels}\n"
               f" Closed-set Accuracy:  {close_acc * 100:.2f}\n"
               f" Open-set Accuracy:    {open_acc * 100:.2f}\n"
-              f" AUROC:                {auroc * 100:.2f}\n"
-              f" Recall:               {recall * 100:.2f}\n"
-              f" Precision:            {precision * 100:.2f}\n"
               f"#############################################################\n"
             )
 
 
 """ ABCD """
-seed = 1
-dataset_list = ["cifar10", "cifar100", "imagenet30"]
+# seed_list = [0, 1, 2]
+# dataset_list = ["cifar10", "cifar100", "imagenet30"]
+seed_list = [1]
+dataset_list = ["cifar100"]
 algorithm_list = ["dac"]
 
-for aidx in algorithm_list:
-    for didx in dataset_list:
-        # 
-        if didx == "cifar10":
-            num_class_list = [6]
-            num_label_list = [5, 10, 25]
-        elif didx == "cifar100":
-            num_class_list = [20, 50]
-            num_label_list = [5, 10, 25]
-        elif didx == "imagenet30":
-            num_class_list = [20]
-            num_label_list = ["p1", "p5"]
-        # 
-        for num_class in num_class_list:
-            for num_label in num_label_list:
-                if type(num_label) == int:
-                    nidx = num_label * num_class
-                else:
-                    pidx = num_label
+for seed in seed_list:
+    for aidx in algorithm_list:
+        for didx in dataset_list:
+            # 
+            if didx == "cifar10":
+                num_class_list = [6]
+                num_label_list = [5, 10, 25]
+            elif didx == "cifar100":
+                num_class_list = [20, 50]
+                num_label_list = [5, 10, 25]
+            elif didx == "imagenet30":
+                num_class_list = [20]
+                num_label_list = ["p1", "p5"]
+            # 
+            for num_class in num_class_list:
+                for num_label in num_label_list:
+                    if type(num_label) == int:
+                        nidx = num_label * num_class
+                    else:
+                        pidx = num_label
 
-                if didx == "imagenet30":
-                    args = parser.parse_args(args=['--c', f'config/openset_cv/{aidx}/{aidx}_in30_{pidx}_{seed}.yaml'])
-                else:
-                    args = parser.parse_args(args=['--c', f'config/openset_cv/{aidx}/{aidx}_{didx}_{num_class}_{nidx}_{seed}.yaml'])
+                    if didx == "imagenet30":
+                        args = parser.parse_args(args=['--c', f'config/openset_cv/{aidx}/{aidx}_in30_{pidx}_{seed}.yaml'])
+                    else:
+                        args = parser.parse_args(args=['--c', f'config/openset_cv/{aidx}/{aidx}_{didx}_{num_class}_{nidx}_{seed}.yaml'])
 
-                args.correlated_ood = False
-                args.mm_ablation = False
-                args.ratio = None
-                args.num_heads = 10
-                over_write_args_from_file(args, args.c)
-                args.data_dir = "data"
-                dataset_dict = get_dataset(args, args.algorithm, args.dataset, args.num_labels, args.num_classes, args.data_dir, eval_open=True)
-                base_root = "./saved_models"
-                if didx == "imagenet30":
-                    args.load_path = f"{base_root}/openset_cv/{aidx}/{aidx}_in30_{pidx}_{seed}/model_best.pth"
-                else:
-                    args.load_path = f"{base_root}/openset_cv/{aidx}/{aidx}_{didx}_{num_class}_{nidx}_{seed}/model_best.pth"
-                if not os.path.exists(args.load_path):
-                    continue
-                best_net = load_model_at('best')
-                evaluate_recall(args, best_net, dataset_dict, extended_test=False)
+                    args.correlated_ood = False
+                    args.mm_ablation = False
+                    args.ratio = None
+                    args.num_heads = 10
+                    over_write_args_from_file(args, args.c)
+                    args.data_dir = "data"
+                    dataset_dict = get_dataset(args, args.algorithm, args.dataset, args.num_labels, args.num_classes, args.data_dir, eval_open=True)
+                    base_root = "./saved_models"
+                    if didx == "imagenet30":
+                        args.load_path = f"{base_root}/openset_cv/{aidx}/{aidx}_in30_{pidx}_{seed}/model_best.pth"
+                    else:
+                        args.load_path = f"{base_root}/openset_cv/{aidx}/{aidx}_{didx}_{num_class}_{nidx}_{seed}/model_best.pth"
+                    if not os.path.exists(args.load_path):
+                        continue
+                    best_net = load_model_at('best')
+                    evaluate_recall(args, best_net, dataset_dict, extended_test=False)

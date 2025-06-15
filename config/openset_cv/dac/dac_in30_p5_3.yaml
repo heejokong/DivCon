@@ -1,8 +1,8 @@
 algorithm: dac
 save_dir: ./saved_models/openset_cv/dac
-save_name: dac_in30_p5_1
+save_name: dac_in30_p5_3
 resume: True
-load_path: ./saved_models/openset_cv/dac/dac_in30_p5_1/latest_model.pth
+load_path: ./saved_models/openset_cv/dac/dac_in30_p5_3/latest_model.pth
 overwrite: True
 use_tensorboard: False
 epoch: 100
@@ -34,7 +34,7 @@ dataset: imagenet30
 train_sampler: RandomSampler
 num_classes: 20
 num_workers: 1
-seed: 1
+seed: 3
 world_size: 1
 rank: 0
 multiprocessing_distributed: True
